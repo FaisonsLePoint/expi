@@ -1,0 +1,32 @@
+/*************************/
+/*** Import used modules */
+
+
+/*****************************************/
+/*** Unir route for {{ uName }} resource */
+
+exports.getAll{{ uName }}s = (req, res) => {
+    return res.json({ message: "All {{ name }}" })
+}
+
+exports.get{{ uName }} = async (req, res) => {
+    let pid = parseInt(req.params.id)
+
+    return res.json({ message: `One {{ name }} id ${pid}` })
+}
+
+exports.add{{ uName }} = async (req, res) => {
+    return res.json({ message: '{{ uName }} Created'})
+}
+
+exports.update{{ uName }} = async (req, res) => {
+    let pid = parseInt(req.params.id)
+
+    return res.json({ message: `{{ uName }} id:${pid} Updated`})
+}
+
+exports.delete{{ uName }} =  (req, res) => {
+    let pid = parseInt(req.params.id)
+
+    return res.status(204).json({})
+}

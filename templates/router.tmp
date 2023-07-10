@@ -1,0 +1,32 @@
+/*************************/
+/*** Import used modules */
+const express = require('express')
+const {{ name }}Ctrl = require('../controllers/{{ name }}')
+
+/***************************/
+/*** Get Expresss's router */
+let router = express.Router()
+
+/*********************************************/
+/*** Middleware to log date for each request */
+router.use( (req, res, next) => {
+    const event = new Date()
+    console.log('{{ uName }} Time:', event.toString())
+    next()
+})
+
+
+/************************************/
+/*** Routes for {{ name }} resource */
+
+router.get('/', {{ name }}Ctrl.getAll{{ uName }}s)
+
+router.get('/:id', {{ name }}Ctrl.get{{ uName }})
+
+router.put('', {{ name }}Ctrl.add{{ uName }})
+
+router.patch('/:id', {{ name }}Ctrl.update{{ uName }})
+    
+router.delete('/:id', {{ name }}Ctrl.delete{{ uName }})
+
+module.exports = router

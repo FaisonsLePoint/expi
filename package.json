@@ -1,0 +1,45 @@
+{
+  "name": "@flp/expi",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Express API RESTFull generator",
+  "main": "bin/generate.js",
+  "bin": {
+    "expi": "bin/generate.js"
+  },
+  "preferGlobal": true,
+  "keywords": [
+    "flp",
+    "faisonlepoint",
+    "express",
+    "framework",
+    "expi",
+    "express api scaffolding",
+    "rest",
+    "restful",
+    "router",
+    "app",
+    "api"
+  ],
+  "author": "Faisons Le Point <chaine.faisonslepoint@gmail.com> (https://www.youtube.com/@FaisonsLePoint)",
+  "license": "MIT",
+  "dependencies": {
+    "boxen": "^7.1.1",
+    "chalk": "^5.3.0",
+    "figlet": "^1.6.0",
+    "fs-extra": "^11.1.1",
+    "inquirer": "^9.2.7",
+    "log-symbols": "^5.1.0",
+    "ora": "^6.3.1",
+    "template-file": "^6.0.1"
+  },
+  "homepage": "https://github.com/FaisonsLePoint/expi",
+  "bugs": {
+    "url": "https://github.com/FaisonsLePoint/expi/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FaisonsLePoint/expi.git"
+  }
+
+}
