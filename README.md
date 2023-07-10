@@ -20,7 +20,7 @@ But with some additions ;)
 ## Installation 🏭
 
 ```bash
-$ npm install -g flp-expi
+$ npm install -g @faisonslepoint/expi
 ```
 
 ## Quick Start 🏃‍♂️
