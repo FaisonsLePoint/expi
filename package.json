@@ -1,5 +1,5 @@
 {
-  "name": "flp-expi",
+  "name": "@faisonslepoint/expi",
   "version": "1.0.1",
   "type": "module",
   "description": "Express API RESTFull generator",
