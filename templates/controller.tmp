@@ -3,7 +3,7 @@
 
 
 /*****************************************/
-/*** Unir route for {{ uName }} resource */
+/*** Unit route for {{ uName }} resource */
 
 exports.getAll{{ uName }}s = (req, res) => {
     return res.json({ message: "All {{ name }}" })

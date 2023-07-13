@@ -1,10 +1,10 @@
-
+#!/usr/bin/env node
 import chalk from 'chalk'
 import logSymbols from 'log-symbols'
 import figlet from 'figlet'
 import boxen from 'boxen'
 import path from 'path'
-import fs from 'fs-extra'
+import fs, { ensureDir } from 'fs-extra'
 import ora from 'ora'
 import inquirer from 'inquirer'
 import { spawn } from 'child_process'
@@ -12,10 +12,14 @@ import { spawn } from 'child_process'
 import pkg from 'template-file'
 const { renderFile } = pkg
 
+import { fileURLToPath } from 'url';
 
 const params = process.argv.slice(2)
 const startTime = new Date().getTime()
 let details = {}
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 if (params.length === 0) {
     console.log(logSymbols.error, chalk.red('Invalid args...'))
@@ -48,7 +52,7 @@ const questions = [
     {
         type: 'input',
         name: 'resources',
-        message: 'Write here your resources separate by coma',
+        message: 'Write here your resources separate by coma : ',
         when(answers) {
             if (answers.first == 'Simple API') {
                 return false
@@ -68,12 +72,13 @@ const questions = [
 
 inquirer.prompt(questions)
     .then(async answers => {
-        console.log(answers)
-
         details = answers
         startApp()
     })
 
+/**
+ * Simple start function
+ */
 const startApp = () => {
     figlet('Expi', { font: 'Slant Relief' }, (err, data) => {
         if (err) {
@@ -100,14 +105,15 @@ const startApp = () => {
     })
 }
 
-
+/**
+ * Main function to organize and create folders and files
+ * according the answers
+ */
 const createApp = async () => {
     try {
 
-        // If not exist's, create app folder //TODO VOIR AVEC FS-EXTRA
-        if (!(await fs.pathExists(rootDir))) {
-            await fs.mkdir(rootDir)
-        }
+        // If not exists, create app folder
+        await ensureDir(rootDir)
 
         // Check if folder is empty
         const files = await fs.readdir(rootDir)
@@ -125,40 +131,59 @@ const createApp = async () => {
         await installScript(['i', 'express', 'cors', 'dotenv'], 'Installing dependencies')
         await installScript(['i', '--save-dev', 'nodemon'], 'Installing dev dependencies')
 
+        // If jwt auth us asked
+        if(details.auth){
+            await installScript(['i', 'jsonwebtoken', 'brcypt'], 'Installing JsonWebToken')
+        }
+
         await modifyPJS('Add script to Package.json')
 
+        // For asked resource or auth
+        if (details.hasOwnProperty('resources') || details.auth) {
+
+            // if (!(await fs.pathExists(rootDir + '/controllers'))) {
+            //     await fs.mkdir(rootDir + '/controllers')
+            //     await fs.mkdir(rootDir + '/routers')
+            // }
+            // TODO TEST
+            await ensureDir(rootDir+'/controllers')
+            await ensureDir(rootDir+'/routers')
+        }
+
+        // For asked resource
         if (details.hasOwnProperty('resources')) {
-
-            if (!(await fs.pathExists(rootDir + '/controllers'))) {
-                await fs.mkdir(rootDir + '/controllers')
-                await fs.mkdir(rootDir + '/routers')
-            }
-
             for (let res of details.resources.split(',')) {
-                let name = res.trim() // TODO utili ici ?
+                let name = res.trim()
 
                 await generateResourceFile(name, 'controller')
                 await generateResourceFile(name, 'router')
 
-                await generateServerFile(details.resources)
+                //await generateServerFile(details.resources) // TODO - revoir server si auth donc pas là
 
-            }
-            
+            }            
         } else {
-            await generateServerFile()
+            //await generateServerFile()
+        }
+
+        await generateServerFile()
+
+        // If JWT Auth asked
+        if(details.auth){
+            await generateAuthFile()
         }
 
         await generateEnvFile()
 
         done()
     } catch (e) {
-        // TODO FAIRE UN VRAI GESTIONNAIRE D'ERREUR        
-        console.log('here')
         console.log(e)
     }
 }
 
-function done() {
+/**
+ * End function after all generations
+ */
+const done = () => {
     console.log(chalk.yellow('------------------------------------'))
     console.log('Begin by typing:')
     console.group()
@@ -180,7 +205,12 @@ function done() {
     console.log('🌈 Happy hacking 🦄')
 }
 
-
+/**
+ * Function to initiate npm command
+ * @param {array} params - npm commands
+ * @param {string} spinnerText - waiting message
+ * @returns {Promise}
+ */
 const installScript = (params, spinnerText) => {
     return new Promise((resolve, reject) => {
         const spinner = ora(spinnerText).start()
@@ -202,6 +232,11 @@ const installScript = (params, spinnerText) => {
     })
 }
 
+/**
+ * Function to modify the package.json file
+ * @param {string} spinnerText - waiting message
+ * @returns {Promise}
+ */
 const modifyPJS = (spinnerText) => {
     return new Promise(async (resolve, reject) => {
         const spinner = ora(spinnerText).start()
@@ -210,19 +245,17 @@ const modifyPJS = (spinnerText) => {
             // Get package.json file
             const pkgSrc = path.join(rootDir, 'package.json')
             const pkgfile = await fs.readFile(pkgSrc, { encoding: 'utf-8' })
-            //console.log(typeof pkgfile)
 
             // Parse in object
             let packageJson = JSON.parse(pkgfile)
-            //console.log(typeof packageJson)
 
             // Add script and license
             packageJson = {
                 ...packageJson,
                 main: 'server.js',
                 scripts: {
-                    start: 'node server.js',
-                    dev: 'nodemon server.js',
+                    start: 'node -r dotenv/config server.js',
+                    dev: 'nodemon -r dotenv/config server.js',
                 },
                 license: 'MIT',
             }
@@ -239,32 +272,13 @@ const modifyPJS = (spinnerText) => {
     })
 }
 
-// TODO VOIR copyFile ou copyFileSync
-const generateFiles = () => {
-    return new Promise(async (resolve, reject) => {
-        const spinner = ora('Generate API files').start()
-        try {
-
-            await fs.copyFile(
-                path.join(rootDir, '..', 'templates', 'server.js'),
-                path.join(rootDir, 'server.js')
-            )
-
-            await fs.copyFile(
-                path.join(rootDir, '..', 'templates', '.env'),
-                path.join(rootDir, '.env')
-            )
-
-            spinner.succeed()
-            resolve()
-        } catch (e) {
-            spinner.fail()
-            reject(e)
-        }
-    })
-}
-
-
+/**
+ * Function to generate resource files
+ * (controller and router files)
+ * @param {string} name - name of resource
+ * @param {string} type - controller | router
+ * @returns {Promise}
+ */
 const generateResourceFile = (name, type) => {
     return new Promise(async (resolve, reject) => {
         let uName = name[0].toUpperCase() + name.slice(1)
@@ -272,7 +286,7 @@ const generateResourceFile = (name, type) => {
 
         try {
             await fs.copyFile(
-                path.join(rootDir, '..', 'templates', `${type}.tmp`),
+                path.join(__dirname, '..', 'templates', `${type}.tmp`),
                 path.join(rootDir + `/${type}s`, `${name}.js`)
             )
 
@@ -292,38 +306,79 @@ const generateResourceFile = (name, type) => {
     })
 }
 
+/**
+ * Function to generate controller and router for JWT Auth
+ * @returns {Promise}
+ */
+const generateAuthFile = () => {
+    return new Promise(async (resolve, reject) => {
+        const spinner = ora('Generate Auth files').start()
+        try{
+            await fs.copyFile(
+                path.join(__dirname, '..', 'templates/auth', `controller.tmp`),
+                path.join(rootDir + `/controllers`, `auth.js`)
+            )
+
+            await fs.copyFile(
+                path.join(__dirname, '..', 'templates/auth', `router.tmp`),
+                path.join(rootDir + `/routers`, `auth.js`)
+            )
+
+            spinner.succeed()
+            resolve()
+        }catch(e){
+            spinner.fail()
+            reject(e)
+        }
+    })
+}
+
+/**
+ * Function to generate server file with resources
+ * @param {string} resources - name of resource
+ * @returns {Promise}
+ */
 const generateServerFile = (resources = null) => {
     return new Promise(async (resolve, reject) => {
         const spinner = ora('Genrate API Server').start()
         try {
 
-            if (resources) {
-                let data = { routers: [], routes: [] }
+            let data = { routers: [], routes: [] }
 
-                for (let res of resources.split(',')) {
+            // Add auth router if asked
+            if(details.auth){
+                data.routers.push({ module: `const auth_router = require('./routers/auth')` })
+                data.routes.push({ route: `app.use('/auth', auth_router)` })
+            }
+
+            // Add resource router if asked
+            if (details.hasOwnProperty('resources')) {
+
+                for (let res of details.resources.split(',')) {
                     let name = res.trim()
                     data.routers.push({ module: `const ${name}_router = require('./routers/${name}')` })
                     data.routes.push({ route: `app.use('/${name}', ${name}_router)` })
                 }
-
-                await fs.copyFile(
-                    path.join(rootDir, '..', 'templates', 'server.tmp'),
-                    path.join(rootDir, `server.js`)
-                )
-
-                let sourceFile = path.join(rootDir, 'server.js')
-                let render = await renderFile(
-                    path.join(rootDir, 'server.js'),
-                    data
-                )
-                await fs.writeFile(sourceFile, render)
-
-            } else {
-                await fs.copyFile(
-                    path.join(rootDir, '..', 'templates', 'server.js'),
-                    path.join(rootDir, 'server.js')
-                )
             }
+
+            await fs.copyFile(
+                path.join(__dirname, '..', 'templates', 'server.tmp'),
+                path.join(rootDir, `server.js`)
+            )
+
+            let sourceFile = path.join(rootDir, 'server.js')
+            let render = await renderFile(
+                path.join(rootDir, 'server.js'),
+                data
+            )
+            await fs.writeFile(sourceFile, render)
+
+            // } else {
+            //     await fs.copyFile(
+            //         path.join(__dirname, '..', 'templates', 'server.js'),
+            //         path.join(rootDir, 'server.js')
+            //     )
+            // }
 
             spinner.succeed()
             resolve()
@@ -335,14 +390,35 @@ const generateServerFile = (resources = null) => {
     })
 }
 
+/**
+ * Function to generate .env file according the answers
+ * @returns {Promise}
+ */
 const generateEnvFile = () => {
     return new Promise(async (resolve, reject) => {
         const spinner = ora('Generate .env file')
         try{
             await fs.copyFile(
-                path.join(rootDir, '..', 'templates', '.env'),
+                path.join(__dirname, '..', 'templates', '.env'),
                 path.join(rootDir, '.env')
             )
+
+            // If auth jwt asked, prepare env variable
+            let jwtParams = {bcryptsalt: '', jwtsecret: '', jwtduring: ''}
+            if(details.auth){
+                jwtParams.bcryptsalt = 'BCRYPT_SALT_ROUND=10'
+                jwtParams.jwtsecret = 'JWT_SECRET=YOUR_JWT_PASSPHRASE_PLEASE_WRITE_A_LONGER'
+                jwtParams.jwtduring = 'JWT_DURING=1h'
+            }
+
+           
+            let sourceFile = path.join(rootDir + `/.env`)
+            let render = await renderFile(
+                path.join(rootDir + `/.env`),
+                jwtParams
+            )
+            await fs.writeFile(sourceFile, render)
+            
 
             spinner.succeed()
             resolve()
@@ -351,91 +427,5 @@ const generateEnvFile = () => {
             reject(e)
         }        
     })
-}
-
-const generateResourceFileOld = async () => {
-    //console.log(details.resources)
-
-
-
-    if (!(await fs.pathExists(rootDir + '/controllers'))) {
-        await fs.mkdir(rootDir + '/controllers')
-        await fs.mkdir(rootDir + '/routers')
-    }
-
-    for (let res of details.resources.split(',')) {
-        let name = res.trim()
-        let uName = name[0].toUpperCase() + name.slice(1)
-
-        let spinner = ora(`Generate ${name} Controller`).start()
-
-        await fs.copyFile(
-            path.join(rootDir, '..', 'templates', 'controller.tmp'),
-            path.join(rootDir + '/controllers', `${name}.js`)
-        )
-
-        let pkgSrc = path.join(rootDir + '/controllers', `${name}.js`)
-        let test = await renderFile(
-            path.join(rootDir + '/controllers', `${name}.js`),
-            { name: name, uName: uName }
-        )
-        await fs.writeFile(pkgSrc, test)
-
-        spinner.succeed()
-
-        //-------------------------------------
-
-        spinner = ora(`Generate ${name} Router`).start()
-
-        await fs.copyFile(
-            path.join(rootDir, '..', 'templates', 'router.tmp'),
-            path.join(rootDir + '/routers', `${name}.js`)
-        )
-
-        pkgSrc = path.join(rootDir + '/routers', `${name}.js`)
-        test = await renderFile(
-            path.join(rootDir + '/routers', `${name}.js`),
-            { name: name, uName: uName }
-        )
-        await fs.writeFile(pkgSrc, test)
-
-        spinner.succeed()
-
-    }
-
-    //------------------------------------
-
-    let spinner = ora('Generate API server').start()
-
-    // TODO voir si toLowercase quand même
-
-    let data = { routers: [], routes: [] }
-
-    for (let res of details.resources.split(',')) {
-        let name = res.trim()
-
-        data.routers.push({ module: `const ${name}_router = require('./routes/${name}')` })
-        data.routes.push({ route: `app.use('/${name}', ${name}_router)` })
-        console.log()
-
-    }
-
-    await fs.copyFile(
-        path.join(rootDir, '..', 'templates', 'server.tmp.js'),
-        path.join(rootDir, `server.js`)
-    )
-
-    let pkgSrc = path.join(rootDir, 'server.js')
-    let test = await renderFile(
-        path.join(rootDir, 'server.js'),
-        data
-    )
-    await fs.writeFile(pkgSrc, test)
-
-    spinner.succeed()
-
-
-    process.exit(0)
-
 }
 
