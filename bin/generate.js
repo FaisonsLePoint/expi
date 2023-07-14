@@ -133,7 +133,7 @@ const createApp = async () => {
 
         // If jwt auth us asked
         if(details.auth){
-            await installScript(['i', 'jsonwebtoken', 'brcypt'], 'Installing JsonWebToken')
+            await installScript(['i', 'jsonwebtoken', 'bcrypt'], 'Installing JsonWebToken')
         }
 
         await modifyPJS('Add script to Package.json')
