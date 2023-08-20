@@ -141,12 +141,6 @@ const createApp = async () => {
 
         // For asked resource or auth
         if (details.hasOwnProperty('resources') || details.auth) {
-
-            // if (!(await fs.pathExists(rootDir + '/controllers'))) {
-            //     await fs.mkdir(rootDir + '/controllers')
-            //     await fs.mkdir(rootDir + '/routers')
-            // }
-            // TODO TEST
             await ensureDir(rootDir+'/controllers')
             await ensureDir(rootDir+'/routers')
         }
