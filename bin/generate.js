@@ -140,12 +140,6 @@ const createApp = async () => {
 
         // For asked resource or auth
         if (details.hasOwnProperty('resources') || details.auth) {
-
-            // if (!(await fs.pathExists(rootDir + '/controllers'))) {
-            //     await fs.mkdir(rootDir + '/controllers')
-            //     await fs.mkdir(rootDir + '/routers')
-            // }
-            // TODO TEST
             await ensureDir(rootDir+'/controllers')
             await ensureDir(rootDir+'/routers')
         }
@@ -158,11 +152,7 @@ const createApp = async () => {
                 await generateResourceFile(name, 'controller')
                 await generateResourceFile(name, 'router')
 
-                //await generateServerFile(details.resources) // TODO - revoir server si auth donc pas là
-
             }            
-        } else {
-            //await generateServerFile()
         }
 
         await generateServerFile()
@@ -372,13 +362,6 @@ const generateServerFile = (resources = null) => {
                 data
             )
             await fs.writeFile(sourceFile, render)
-
-            // } else {
-            //     await fs.copyFile(
-            //         path.join(__dirname, '..', 'templates', 'server.js'),
-            //         path.join(rootDir, 'server.js')
-            //     )
-            // }
 
             spinner.succeed()
             resolve()
