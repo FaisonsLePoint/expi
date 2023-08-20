@@ -13,6 +13,7 @@ import pkg from 'template-file'
 const { renderFile } = pkg
 
 import { fileURLToPath } from 'url';
+import { json } from 'stream/consumers'
 
 const params = process.argv.slice(2)
 const startTime = new Date().getTime()
@@ -158,11 +159,7 @@ const createApp = async () => {
                 await generateResourceFile(name, 'controller')
                 await generateResourceFile(name, 'router')
 
-                //await generateServerFile(details.resources) // TODO - revoir server si auth donc pas là
-
             }            
-        } else {
-            //await generateServerFile()
         }
 
         await generateServerFile()
@@ -170,6 +167,7 @@ const createApp = async () => {
         // If JWT Auth asked
         if(details.auth){
             await generateAuthFile()
+            await generateMiddleware()
         }
 
         await generateEnvFile()
@@ -334,6 +332,28 @@ const generateAuthFile = () => {
 }
 
 /**
+ * Function to generate the check token middleware file
+ * @returns {Promise}
+ */
+const generateMiddleware = () => {
+    return new Promise(async (resolve, reject) => {
+        const spinner = ora('Generate Middleware JWT files').start()
+        try{
+            await fs.copyFile(
+                path.join(__dirname, '..', 'templates/middleware', `jwtCheck.tmp`),
+                path.join(rootDir + `/middleware`, `jwtCheck.js`)
+            )
+
+            spinner.succeed()
+            resolve()
+        }catch(e){
+            spinner.fail()
+            reject(e)
+        }
+    })
+}
+
+/**
  * Function to generate server file with resources
  * @param {string} resources - name of resource
  * @returns {Promise}
@@ -372,13 +392,6 @@ const generateServerFile = (resources = null) => {
                 data
             )
             await fs.writeFile(sourceFile, render)
-
-            // } else {
-            //     await fs.copyFile(
-            //         path.join(__dirname, '..', 'templates', 'server.js'),
-            //         path.join(rootDir, 'server.js')
-            //     )
-            // }
 
             spinner.succeed()
             resolve()
