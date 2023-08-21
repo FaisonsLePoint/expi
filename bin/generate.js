@@ -141,12 +141,6 @@ const createApp = async () => {
 
         // For asked resource or auth
         if (details.hasOwnProperty('resources') || details.auth) {
-
-            // if (!(await fs.pathExists(rootDir + '/controllers'))) {
-            //     await fs.mkdir(rootDir + '/controllers')
-            //     await fs.mkdir(rootDir + '/routers')
-            // }
-            // TODO TEST
             await ensureDir(rootDir+'/controllers')
             await ensureDir(rootDir+'/routers')
         }
@@ -339,6 +333,9 @@ const generateMiddleware = () => {
     return new Promise(async (resolve, reject) => {
         const spinner = ora('Generate Middleware JWT files').start()
         try{
+            
+            await ensureDir(rootDir+'/middleware') 
+
             await fs.copyFile(
                 path.join(__dirname, '..', 'templates/middleware', `jwtCheck.tmp`),
                 path.join(rootDir + `/middleware`, `jwtCheck.js`)
